@@ -1,7 +1,6 @@
 /*
  * Viditelnost
  * Author: Willaschek Tomas (xwilla00)
- *
  */
 
 #include <mpi.h>
@@ -19,8 +18,7 @@ using namespace std;
 
 int main(int argc, char *argv[])
 {
-    int numprocs, myid, mynumber, number_count;
-    int proc_cnt, first_val, index = 0, iterations, rest = 0;
+    int numprocs, myid, mynumber, first_val, iterations;
     double angle;
 
     MPI_Status stat;
@@ -28,9 +26,10 @@ int main(int argc, char *argv[])
     MPI_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
     MPI_Comm_rank(MPI_COMM_WORLD, &myid);
-    vector<int> numbers;
 
     if(myid == 0){
+        int rest = 0, proc_cnt, number_count;
+        vector<int> numbers;
         ifstream stream;
         stringstream ss;
         string item;
@@ -61,7 +60,7 @@ int main(int argc, char *argv[])
             MPI_Send(&mynumber, 1, MPI_INT, rest, TAG, MPI_COMM_WORLD);
         }
         // zbytek vyplnime -1
-        for(int i = ++rest; i < numprocs; i++){
+        for(int i = rest+1; i < numprocs; i++){
             mynumber = NONUM;
             MPI_Send(&mynumber, 1, MPI_INT, i, TAG, MPI_COMM_WORLD);
         }
@@ -86,11 +85,11 @@ int main(int argc, char *argv[])
         if(my_numbers[i] == NONUM)
             my_angles.push_back(NONUM);
         else
-            my_angles.push_back(atan((my_numbers[i] - first_val) / num_index));
+            my_angles.push_back(atan((my_numbers[i] - first_val) / (double)num_index));
     }
 
     // ziskani vsech uhlu a sdileni sveho
-    double all_angles[iterations * numprocs];
+    double all_angles[iterations * numprocs + 1];
     for(int i = 0; i < iterations; i++){
         // vsichni poslou vsem
         for(int j = 0; j < numprocs; j++){
@@ -106,12 +105,13 @@ int main(int argc, char *argv[])
     int state; // 1 = 'v', 0 = 'u', -1 = pro vyplneni poctu procesoru
     for(int i = 0; i < iterations; i++){
         bool visible = true;
-        num_index = i * numprocs; // index v poli vsech uhlu
+        num_index = i * numprocs + myid; // index v poli vsech uhlu
         if(all_angles[num_index] == NONUM)
             state = -1;
         else {
-            for (int j = num_index - 1; j >= 0 && visible; j++)
-                if (all_angles[num_index] <= all_angles[j])
+            // max_prev_angle
+            for (int j = num_index - 1; j >= 0 && visible; j--)
+                if (all_angles[j] >= all_angles[num_index])
                     visible = false;
             state = visible ? 1 : 0;
         }
@@ -120,13 +120,13 @@ int main(int argc, char *argv[])
 
     // sber a vypis dat
     if(myid == 0){
-        cout << '_';
+        for(int i = 0; i < iterations; i++)
+            for(int j = 0; j < numprocs; j++)
+                cout << all_angles[i * numprocs + j] << endl;
+        cout << "_";
         for(int i = 0; i < iterations; i++){
             for(int j = 0; j < numprocs; j++){
-                num_index = i * numprocs + j;
-                cout << endl << num_index +1<< ": " << numbers[num_index + 1] << " : " << all_angles[num_index] << "\t";
                 MPI_Recv(&state, 1, MPI_INT, j, TAG, MPI_COMM_WORLD, &stat);
-                cout << state << " : ";
                 if(state == 1)
                     cout << ",v";
                 else if(state == 0)
