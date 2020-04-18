@@ -20,3 +20,5 @@ then
 else
   mpirun --prefix /usr/local/share/OpenMPI -np 20 vid
 fi
+
+rm -f numbers vid
