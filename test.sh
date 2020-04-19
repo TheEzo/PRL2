@@ -102,6 +102,7 @@ else
     fi
     for j in {1..30}
     do
+      echo $((iterations - 1))
       mpirun --prefix /usr/local/share/OpenMPI -np $count vid
     done
     printf "\n" >> test.out
