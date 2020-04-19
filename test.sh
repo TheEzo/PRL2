@@ -7,20 +7,49 @@ then
 fi
 
 numbers=$1
-count=$(echo $numbers |tr "," "\n" |wc -l)
-
-#echo $count
+count=$(($(echo $numbers |tr "," "\n" |wc -l) - 1))
 echo $numbers > numbers
 
-mpic++ --prefix /usr/local/share/OpenMPI -o vid vid.cpp
-# TODO spocita cpu count
-if [ $count -le 20 ]
+if [ $count -ge 20 ]
 then
-  mpirun --prefix /usr/local/share/OpenMPI -np 4 vid #$((count-1)) vid
-  mpirun --prefix /usr/local/share/OpenMPI -np 4 lin_vid #$((count-1)) lin_vid
+  if [ $(($count / 2)) -ge 20 ]
+  then
+    count=16
+  else
+    count=8
+  fi
 else
-  mpirun --prefix /usr/local/share/OpenMPI -np 20 vid
-  mpirun --prefix /usr/local/share/OpenMPI -np 20 lin_vid
+  if [ $count -eq 16 ]
+  then
+    count=16
+  else
+    if [ $count -eq 8 ]
+    then
+     count=8
+    else
+      if [ $count -eq 4 ]
+      then
+        count=4
+      else
+        if [ $count -eq 2 ]
+        then
+          count=2
+        else
+          if [ $count -ge 12 ]
+        then
+          count=8
+        else
+          count=4
+        fi
+        fi
+      fi
+    fi
+  fi
 fi
 
-#rm -f numbers vid
+mpic++ --prefix /usr/local/share/OpenMPI -o vid vid.cpp
+
+mpirun --prefix /usr/local/share/OpenMPI -np $count vid
+mpirun --prefix /usr/local/share/OpenMPI -np $count lin_vid
+
+rm -f numbers vid

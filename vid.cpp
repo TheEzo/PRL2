@@ -13,6 +13,7 @@
 
 #define TAG 0
 #define NONUM -1
+#define TESTING = 1
 
 using namespace std;
 
@@ -62,7 +63,7 @@ int main(int argc, char **argv)
             for(int j = 0; j < proc_cnt && rest; j++){
                 index = proc_cnt * i + j + 1;
                 if(index < numbers.size())
-                    mynumber = numbers[proc_cnt * i + j + 1];
+                    mynumber = numbers[index];
                 else
                     break;
                 MPI_Send(&mynumber, 1, MPI_INT, i, TAG, MPI_COMM_WORLD);
@@ -71,12 +72,16 @@ int main(int argc, char **argv)
         }
         // zbytek vyplnime vatou
         for(int j = numprocs-1; j >= 0; j--)
-            for(int i = rest; i < proc_cnt && rest; i++){
+            for(int i = 0; i < proc_cnt && rest; i++){
                 mynumber = NONUM;
-                MPI_Send(&mynumber, 1, MPI_INT, numprocs-1, TAG, MPI_COMM_WORLD);
+                MPI_Send(&mynumber, 1, MPI_INT, j, TAG, MPI_COMM_WORLD);
                 rest--;
             }
     }
+
+    double start;
+    if(myid == 0)
+        start = MPI_Wtime();
 
     // nastaveni pocatecniho bodu
     MPI_Recv(&first_val, 1, MPI_INT, 0, TAG, MPI_COMM_WORLD, &stat);
@@ -99,6 +104,7 @@ int main(int argc, char **argv)
             my_angles.push_back(atan((my_numbers[i] - first_val) / (double)num_index));
         max_angle = i ? max(my_angles[i], my_angles[i-1]) : my_angles[i];
     }
+    cout << myid << ": "<<max_angle<<endl;
 
     vector<double> node_angles = {max_angle};
     int size;
@@ -118,7 +124,7 @@ int main(int argc, char **argv)
 
     // Nahrazeni posledni prvku za neutralni
     if(myid == numprocs - 1){
-        node_angles.push_back(0);
+        node_angles.push_back(-5);
     }
     // DownSweep
     for(int d = numprocs; d >= 2; d = d/2){
@@ -155,6 +161,19 @@ int main(int argc, char **argv)
         }
         MPI_Send(&res, 1, MPI_INT, 0, TAG, MPI_COMM_WORLD);
     }
+
+    double end;
+    if(myid == 0)
+        end = MPI_Wtime();
+
+    #ifdef TESTING
+    if(myid == 0){
+        ofstream f;
+        f.open("test.out", ios::app);
+        f << ";" << end - start;
+        f.close();
+    }
+    #endif
 
     if(myid == 0){
         cout << "_";
