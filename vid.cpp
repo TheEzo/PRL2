@@ -13,7 +13,7 @@
 
 #define TAG 0
 #define NONUM -1
-#define TESTING = 1
+//#define TESTING = 1
 
 using namespace std;
 
@@ -104,7 +104,6 @@ int main(int argc, char **argv)
             my_angles.push_back(atan((my_numbers[i] - first_val) / (double)num_index));
         max_angle = i ? max(my_angles[i], my_angles[i-1]) : my_angles[i];
     }
-    cout << myid << ": "<<max_angle<<endl;
 
     vector<double> node_angles = {max_angle};
     int size;
